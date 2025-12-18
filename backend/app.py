@@ -7,6 +7,7 @@ import json
 import contextlib
 import logging
 import sys
+import asyncio
 from dotenv import load_dotenv
 
 
@@ -37,15 +38,21 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Application Bootstrap...")
     data_path = os.path.join(BASE_DIR, "data", "products.json")
     
-    try:
-        count = rag_engine.collection.count()
-        if count == 0:
-            logger.info("Vector Store empty. Starting cold-start ingestion...")
-            rag_engine.ingest_data(data_path)
-        else:
-            logger.info(f"Vector Store Active. Entities: {count}")
-    except Exception as e:
-        logger.error(f"Bootstrap Ingestion failure: {e}")
+    async def background_ingestion():
+        try:
+            # Small delay to allow port binding to finalize
+            await asyncio.sleep(1)
+            count = rag_engine.collection.count()
+            if count == 0:
+                logger.info("Vector Store empty. Starting cold-start ingestion...")
+                rag_engine.ingest_data(data_path)
+            else:
+                logger.info(f"Vector Store Active. Entities: {count}")
+        except Exception as e:
+            logger.error(f"Background Ingestion failure: {e}")
+
+    # Fire and forget - lets the server start listening immediately
+    asyncio.create_task(background_ingestion())
         
     yield
     logger.info("Graceful shutdown sequence complete.")
