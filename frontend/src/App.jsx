@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Search, Loader2, BookOpen, Clock, Globe, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 function App() {
   const [query, setQuery] = useState("");
