@@ -1,0 +1,55 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.filenames
+.pytest_cache/
+.python-version
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vector Database (Re-ingested on cold start)
+backend/chroma_db/
+backend/data/user_feedback.json
+
+# Tooling & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary & Debug
+debug_fail.html
+page_dump.html
+check_log.txt
+backend/data/debug_*.json
+evaluation/failure_analysis.csv
+evaluation/evaluate.py.log
