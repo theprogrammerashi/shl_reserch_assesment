@@ -39,23 +39,32 @@ def validate_model(model_path: str, base_model: str) -> bool:
     
     return True
 
-if validate_model(FINE_TUNED_MODEL_PATH, DEFAULT_MODEL_NAME):
-    EMBEDDING_MODEL_NAME = FINE_TUNED_MODEL_PATH
-    logger.info(f"Loading Fine-Tuned Model: {EMBEDDING_MODEL_NAME}")
-else:
-    EMBEDDING_MODEL_NAME = DEFAULT_MODEL_NAME
-    logger.info(f"Loading Base Model: {EMBEDDING_MODEL_NAME}")
+embedding_func = None
+collection = None
 
-try:
-    embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
-    client = chromadb.PersistentClient(path=PERSIST_DIRECTORY)
-    collection = client.get_or_create_collection(
-        name="shl_assessments_v2",
-        embedding_function=embedding_func
-    )
-except Exception as e:
-    logger.error(f"Failed to initialize Vector Store: {e}")
-    sys.exit(1)
+def get_engine():
+    global embedding_func, collection
+    if collection is not None:
+        return collection
+    
+    try:
+        if validate_model(FINE_TUNED_MODEL_PATH, DEFAULT_MODEL_NAME):
+            model_name = FINE_TUNED_MODEL_PATH
+            logger.info(f"Loading Fine-Tuned Model: {model_name}")
+        else:
+            model_name = DEFAULT_MODEL_NAME
+            logger.info(f"Loading Base Model: {model_name}")
+
+        embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=model_name)
+        client = chromadb.PersistentClient(path=PERSIST_DIRECTORY)
+        collection = client.get_or_create_collection(
+            name="shl_assessments_v2",
+            embedding_function=embedding_func
+        )
+        return collection
+    except Exception as e:
+        logger.error(f"Failed to initialize Vector Store: {e}")
+        raise e
 
 def ingest_data(json_path: str):
     """
@@ -79,7 +88,8 @@ def ingest_data(json_path: str):
     documents = []
     metadatas = []
 
-    logger.info(f"Ingesting {len(products)} products into {collection.name}...")
+    curr_collection = get_engine()
+    logger.info(f"Ingesting {len(products)} products into {curr_collection.name}...")
 
     for i, product in enumerate(products):
         
@@ -105,9 +115,10 @@ def ingest_data(json_path: str):
         metadatas.append(metadata)
 
     if ids:
+        curr_collection = get_engine()
         batch_size = 100
         for idx in range(0, len(ids), batch_size):
-            collection.upsert(
+            curr_collection.upsert(
                 ids=ids[idx:idx+batch_size], 
                 documents=documents[idx:idx+batch_size], 
                 metadatas=metadatas[idx:idx+batch_size]
@@ -147,7 +158,8 @@ def search(query: str, n_results: int = 50) -> list:
     expanded_query = expand_query(query)
     
     try:
-        results = collection.query(
+        curr_collection = get_engine()
+        results = curr_collection.query(
             query_texts=[expanded_query],
             n_results=n_results
         )

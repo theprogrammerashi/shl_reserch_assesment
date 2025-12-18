@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
         try:
             # Small delay to allow port binding to finalize
             await asyncio.sleep(1)
-            count = rag_engine.collection.count()
+            count = rag_engine.get_engine().count()
             if count == 0:
                 logger.info("Vector Store empty. Starting cold-start ingestion...")
                 rag_engine.ingest_data(data_path)
